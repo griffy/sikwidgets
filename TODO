@@ -1,0 +1,21 @@
+Add a timer function so that sikwidgets can return the time it takes for a certain state to appear
+
+Add a print_timing decorator to all functions that prints how long it
+took to evaluate if settings.DEBUG is true
+
+Cache the hell out of all things Table-related, and find all ways to speed searching up.
+
+Consider using onAppear and onChange events for efficiency (scrolling especially)
+
+Make sure all "parent" regions and region methods make sense and follow a uniform behavioral structure
+
+Add "pause" method that pops up a dialog with specified text and waits for the user to press "OK" - this already exists as popup()
+
+Improve cell-finding algorithm by considering the whole space below the column as one region and doing a findAll on the cell_value. Then, based on the returned matches calculate which row each cell is in.
+In the case of wanting to find only the first matching cell, the current algorithm could be kept, or the new one could be used and the Match object at the lowest y position would be the 'first'.
+
+Migrate away from using the terminal for input (especially for the 
+capture screenshot section).. Use popups and inputs
+
+## Future Work
+Don't require an application. Allow certain widgets to be used within scripts to automate certain tasks that may require using multiple apps?
