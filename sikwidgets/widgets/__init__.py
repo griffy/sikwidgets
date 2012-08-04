@@ -1,6 +1,6 @@
 instantiable_widget_class_names = [
 	"Button",
-	"Checkbox",
+	"CheckBox",
 	"Image",
 	"Label",
 	"List",
@@ -16,7 +16,7 @@ instantiable_widget_class_names = [
 from widget import Widget
 from page import Page
 from button import Button
-from checkbox import Checkbox
+from check_box import CheckBox
 from image import Image
 from label import Label
 from list import List, ListRow
