@@ -4,7 +4,8 @@ from sikwidgets.overlay import Overlay
 
 class Tasks(Window):
     def contains(self):
-        self.tabs = RegionGroup().within(self, range(0, 3))
+        # the tabs region group is within the top third of the window
+        self.tabs = RegionGroup().within(self, (1, 3))
         self.applications_tab = self.button('applications_tab').within_region(self.tabs)
         self.processes_tab = self.button('processes_tab').within_region(self.tabs)
         self.processes_table = self.table('processes_table',
