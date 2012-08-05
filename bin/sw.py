@@ -92,7 +92,7 @@ def create_app(name):
 	f = open(os.path.join(name, "%s.py" % name), "w")
 
 	f.write("from sikwidgets.application import Application\n")
-	f.write("from windows.%s import %s\n" % (name, to_pascalcase(name)))
+	f.write("from windows.%s_window import %sWindow\n" % (name, to_pascalcase(name)))
 	f.write("\n")
 	f.write("class %s(Application):\n" % to_pascalcase(name))
 	f.write("\topen_cmd = ''\n")
@@ -106,7 +106,7 @@ def create_window(name):
 	f = open(os.path.join(windows_path, "%s_window.py" % name), "w")
 
 	f.write("from sikwidgets.window import Window\n")
-	f.write("from sikwidgets.regiongroup import RegionGroup\n")
+	f.write("from sikwidgets.region_group import RegionGroup\n")
 	f.write("\n")
 	f.write("class %sWindow(Window):\n" % to_pascalcase(name))
 	f.write("\tdef contains(self):\n")
