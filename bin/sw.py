@@ -135,7 +135,7 @@ if __name__ == "__main__":
 		              dest='capture_target',
 					  help='Lets you take screenshots of various windows and widgets in your project')
 	parser.add_option('-s', '--screenshot',
-					  dest='save_screenshot',
+					  dest='screenshot_name',
 					  help='Saves a single screenshot of a selected region to the given name')
 	args = vars(parser.parse_args()[0])
 
@@ -143,5 +143,5 @@ if __name__ == "__main__":
 		generate_project(args['new_project'])
 	elif args['capture_target'] is not None:
 		capture(args['capture_target'])
-	elif args['save_screenshot'] is not None:
-		save_screenshot(args['save_screenshot'])
+	elif args['screenshot_name'] is not None:
+		save_screenshot(args['screenshot_name'])
