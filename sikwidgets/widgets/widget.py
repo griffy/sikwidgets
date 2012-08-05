@@ -109,7 +109,7 @@ class Widget(RegionGroup):
         states = raw_input("List the states, separated by commas, " +
                            "you would like to capture:\n").replace(' ', '').split(',')
         for state in states:
-            capture_screenshots(state, self.image_folder(), widget=self)
+            capture_screenshot(state, self.image_folder(), widget=self)
 
 
     def find_states(self, path):
