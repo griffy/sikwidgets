@@ -1,8 +1,7 @@
 from sikwidgets.window import Window
-from sikwidgets.regiongroup import RegionGroup
-from sikwidgets.overlay import Overlay
+from sikwidgets.region_group import RegionGroup
 
-class Tasks(Window):
+class TaskManagerWindow(Window):
     def contains(self):
         # the tabs region group is within the top third of the window
         self.tabs = RegionGroup().within(self, (1, 3))
@@ -14,6 +13,6 @@ class Tasks(Window):
                     'cpu',
                     'memory',
                     'description'],
-           row_height=14
+           row_height=14,
            rows_per_page=19
         )
