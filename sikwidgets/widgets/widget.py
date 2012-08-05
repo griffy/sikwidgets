@@ -102,9 +102,9 @@ class Widget(RegionGroup):
         if not response.startswith('y'):
             return
 
-        print "Required states: %s" % (','.join(self.required_states))
-        print "Optional states: %s" % (','.join(self.optional_states))
-        print "Existing states: %s" % (','.join(self.states.keys()))
+        print "Required states: %s" % (', '.join(self.required_states))
+        print "Optional states: %s" % (', '.join(self.optional_states))
+        print "Existing states: %s" % (', '.join(self.states.keys()))
 
         states = raw_input("List the states, separated by commas, " +
                            "you would like to capture:\n").replace(' ', '').split(',')
