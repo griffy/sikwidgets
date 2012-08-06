@@ -14,7 +14,10 @@ class RadioButton(Widget):
         self.group = group
         self.selected = selected
         if group:
-            radio_groups[self.group_key()].append(self)
+            key = self.group_key()
+            if key not in radio_groups:
+                radio_groups[key] = []
+            radio_groups[key].append(self)
 
     def group_key(self):
         # two radio buttons must have the same parent if they are to be
