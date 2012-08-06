@@ -7,14 +7,14 @@ def main():
     # This is useful if the same application has
     # different looks across OSs.
     #
-    # settings.IMAGES_PATH = "images"
+    settings.IMAGES_PATH = "images-winxp-default"
 
-    # By uncommenting this line, more status messages 
+    # More status messages 
     # will be printed to the screen and windows, widgets,
     # and mouse actions will be highlighted.
     # Note: The program will run significantly slower.
     #
-    settings.debug()
+    #settings.debug()
 
     # This setting changes how much an image is compacted
     # for processing as well as slightly changing the 

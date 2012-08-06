@@ -1,7 +1,8 @@
 import re
 import os
 import shutil
-from sikuli.Sikuli import SCREEN
+from java.awt import Robot
+from sikuli.Sikuli import SCREEN, Settings, Env, Location
 
 # http://stackoverflow.com/a/1176023
 first_cap_re = re.compile('(.)([A-Z][a-z]+)')
@@ -60,3 +61,18 @@ def capture_screenshot(name, path, widget=None):
             accepted = True
             dest_uri = os.path.join(path, "%s.png" % name)
             shutil.move(temp_uri, dest_uri)
+
+def move_mouse(loc):
+    Robot().mouseMove(loc.x, loc.y)
+
+def hide_mouse(func):
+    def wrapped(*args, **kwargs):
+        original_location = Env.getMouseLocation()
+        original_move_delay = Settings.MoveMouseDelay
+        Settings.MoveMouseDelay = 0
+        move_mouse(Location(10000, 10000))
+        result = func(*args, **kwargs)
+        move_mouse(original_location)
+        Settings.MoveMouseDelay = original_move_delay
+        return result
+    return wrapped

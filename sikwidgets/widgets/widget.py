@@ -1,10 +1,10 @@
 import os
 import types
 
-from sikuli.Sikuli import Location, FindFailed
+from sikuli.Sikuli import Location, FindFailed, Env
 
 from sikwidgets.region_group import RegionGroup
-from sikwidgets.util import capture_screenshot, target_offset_region
+from sikwidgets.util import capture_screenshot, hide_mouse, target_offset_region
 from sikwidgets import settings
 
 REGION_FUZZY_FACTOR = 10
@@ -39,6 +39,11 @@ class WidgetError(Exception): pass
 def gen_is_state_method(state):
     def is_state_method(self):
         return self == state # calls __eq__
+    # for all state methods but hovered, we want
+    # to hide the mouse pointer so it doesn't affect
+    # the image
+    if state != 'hovered':
+        return hide_mouse(is_state_method)
     return is_state_method
 
 class Widget(RegionGroup):
@@ -236,7 +241,7 @@ class Widget(RegionGroup):
         # Use a timeout of half a second rather than
         # the default of 3
         region.setAutoWaitTimeout(0.5)
-        
+
         func = getattr(region, func_name)
         if state in self.states:
             return func(self.states[state], *args, **kwargs)

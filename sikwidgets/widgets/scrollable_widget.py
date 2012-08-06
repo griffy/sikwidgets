@@ -49,8 +49,14 @@ class ScrollableWidget(Widget):
 
     def scrollbar_at_top(self):
         if not self.has_vertical_scrollbar():
+            print "I don't think there's a vertical scrollbar"
             return True
-        return self._top_button.is_touching()
+        touching = self._top_button.is_touching()
+        if touching:
+            print "I think we're at the top"
+        else:
+            print "I don't think we're at the top"
+        return touching
 
     def scrollbar_at_bottom(self):
         if not self.has_vertical_scrollbar():
@@ -68,17 +74,16 @@ class ScrollableWidget(Widget):
         return self._right_button.is_touching()
 
     def scroll_up(self, amount=1):
-        if not self.has_vertical_scrollbar():
-            return 0
         for i in range(amount):
             if self.scrollbar_at_top():
+                # return how many we scrolled before 
+                # reaching the top
                 return i
             self._top_button.click()
+        # we scrolled the full amount
         return amount
 
     def scroll_down(self, amount=1):
-        if not self.has_vertical_scrollbar():
-            return 0
         for i in range(amount):
             if self.scrollbar_at_bottom():
                 return i
@@ -86,8 +91,6 @@ class ScrollableWidget(Widget):
         return amount
 
     def scroll_left(self, amount=1):
-        if not self.has_horizontal_scrollbar():
-            return 0
         for i in range(amount):
             if self.scrollbar_at_left():
                 return i
@@ -95,8 +98,6 @@ class ScrollableWidget(Widget):
         return amount
 
     def scroll_right(self, amount=1):
-        if not self.has_horizontal_scrollbar():
-            return 0
         for i in range(amount):
             if self.scrollbar_at_right():
                 return i
