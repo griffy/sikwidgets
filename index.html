@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <link href='https://fonts.googleapis.com/css?family=Chivo:900' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/pygment_trac.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print" />
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <title>Sikwidgets by griffy</title>
+  </head>
+
+  <body>
+    <div id="container">
+      <div class="inner">
+
+        <header>
+          <h1>Sikwidgets</h1>
+          <h2>Control ALL the apps!</h2>
+        </header>
+
+        <section id="downloads" class="clearfix">
+          <a href="https://github.com/griffy/sikwidgets/zipball/master" id="download-zip" class="button"><span>Download .zip</span></a>
+          <a href="https://github.com/griffy/sikwidgets/tarball/master" id="download-tar-gz" class="button"><span>Download .tar.gz</span></a>
+          <a href="https://github.com/griffy/sikwidgets" id="view-on-github" class="button"><span>View on GitHub</span></a>
+        </section>
+
+        <hr>
+
+        <section id="main_content">
+          <h3>What is Sikwidgets?</h3>
+
+<p>Ever wanted to programmatically control an application, but you didn't have access to the source?</p>
+
+<p>Sikwidgets is a Python framework built on top of <a href="http://sikuli.org">Project Sikuli</a>. Sikuli allows users to specify images of the screen that can be clicked, hovered over, or typed into. Sikwidgets builds on this concept by allowing users to define how an application actually looks in terms of widgets as opposed to just images. For example, rather than saying:</p>
+
+<pre><code>type(image-of-text-field, "hello world")
+</code></pre>
+
+<p>We can now say:</p>
+
+<pre><code>text_field.text = "hello world"
+</code></pre>
+
+<p>By considering a widget to be a section of the screen that can have multiple states (ie, enabled, disabled, focused, etc.), Sikwidgets reduces the amount of code necessary to write to handle more advanced GUIs.</p>
+
+<p>The primary goal of Sikwidgets is to provide a robust framework for automating the usage of advanced applications that have many widgets and require a more structured approach to controlling them.</p>
+
+<h3>Installing</h3>
+
+<p>First, install the most recent version of Sikuli (1.0rc3 at the time of writing).
+Then,</p>
+
+<p>On Windows (in Git Shell using PowerShell, preferably):</p>
+
+<pre><code>$ git clone git://github.com/griffy/sikwidgets.git
+$ cd sikwidgets\install
+$ .\install.bat
+</code></pre>
+
+<p>Now you're good to go!</p>
+
+<h3>Example Usage</h3>
+
+<p>Let's go through the steps of creating our very own Sikwidgets application.</p>
+
+<p>Sikwidgets comes with its own script, sikwidgets, to make our lives easier. Rather than needing to create a new project structure every time, we can tell the sikwidgets script to do that for us.</p>
+
+<pre><code>$ sikwidgets.bat --new demo
+</code></pre>
+
+<p>Now you'll notice that the script has generated a demo folder with the following contents:</p>
+
+<pre><code>images/
+windows/
+windows/demo_window.py
+demo.py
+</code></pre>
+
+<p><strong>To Be Continued</strong></p>
+
+<p>Perhaps the nicest feature of the sikwidgets script is that it enables us to use Sikuli's screen capture utility for our widgets. If we do the following in our project directory:</p>
+
+<pre><code>$ sikwidgets.bat --capture demo
+</code></pre>
+
+<p>The script will look for an application called Demo in a demo.py file and call capture_screenshots on each window in the application. Each window will, in turn, call capture_screenshots on each widget it contains. The result is that you can define your application in code, then simply execute this script to capture the corresponding screenshots necessary for your widgets.</p>
+
+<p>If you don't need to take screenshots of every widget, you can use a scoping pattern similar to URIs:</p>
+
+<pre><code>app/window/[window ...]/[page ...]/widget
+</code></pre>
+
+<p>So, if we do:</p>
+
+<pre><code>$ sikwidgets.bat --capture demo/demo_window/demo_button
+</code></pre>
+
+<p>Only demo_button inside DemoWindow will have its capture_screenshots method called.</p>
+
+<p>Finally, if we don't have a widget defined in code yet, but we want to capture a screenshot nonetheless and dump it to a file, we can do that too!</p>
+
+<pre><code>$ sikwidgets.bat --screenshot [\path\to\]name
+</code></pre>
+
+<p>Once the screenshot is taken, it will be saved to [\path\to\]name.png</p>
+
+<p>If you want to look at some real examples of what can be done, check out the sikwidgets/examples folder. To run one, just do:</p>
+
+<pre><code>$ cd sikwidgets\examples
+$ .\run.bat example-folder-name
+</code></pre>
+
+<h3>License</h3>
+
+<p>Sikwidgets is released under the MIT License, so feel free to use it in your projects!</p>
+        </section>
+
+        <footer>
+          Sikwidgets is maintained by <a href="https://github.com/griffy">griffy</a><br>
+          This page was generated by <a href="http://pages.github.com">GitHub Pages</a>. Tactile theme by <a href="http://twitter.com/jasonlong">Jason Long</a>.
+        </footer>
+
+        
+      </div>
+    </div>
+  </body>
+</html>
