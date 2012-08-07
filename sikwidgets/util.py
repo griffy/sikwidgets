@@ -70,7 +70,7 @@ def hide_mouse(func):
         original_location = Env.getMouseLocation()
         original_move_delay = Settings.MoveMouseDelay
         Settings.MoveMouseDelay = 0
-        move_mouse(Location(10000, 10000))
+        move_mouse(Location(SCREEN.getW()-1, SCREEN.getH()-1))
         result = func(*args, **kwargs)
         move_mouse(original_location)
         Settings.MoveMouseDelay = original_move_delay

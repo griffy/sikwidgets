@@ -9,6 +9,10 @@ from sikwidgets import settings
 # TODO: create subfolders of table columns for each expected cell.
 #       This way, cells can have states just like other widgets.
 #       Also, it keeps things cleaner.
+# 
+#       binary searching
+#
+#       know how far left/down to click
 
 # TODO:
 # TableColumn should probably cache rows and cells that it

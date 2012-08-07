@@ -7,7 +7,7 @@ from sikwidgets.region_group import RegionGroup
 from sikwidgets.util import capture_screenshot, hide_mouse, target_offset_region
 from sikwidgets import settings
 
-REGION_FUZZY_FACTOR = 10
+REGION_FUZZY_FACTOR = 25
 
 class WidgetError(Exception): pass
 
@@ -42,6 +42,7 @@ def gen_is_state_method(state):
     # for all state methods but hovered, we want
     # to hide the mouse pointer so it doesn't affect
     # the image
+    # FIXME: this seems hacky
     if state != 'hovered':
         return hide_mouse(is_state_method)
     return is_state_method
