@@ -89,6 +89,15 @@ class Widget(RegionGroup):
             return True
         return False
 
+    # TODO: Add new <>_in methods that accept a region as their first parameter
+    #       and do their searching within it. exists_in, find_in, etc.
+    #       Those should use the pre-existing code for their corresponding
+    #       methods. Once that is done, change the old methods to just
+    #       call their corresponding <>_in methods, passing search_region
+    #       (or region?) by default
+    def equals_in(self, region, state):
+        pass
+
     def image_folder(self):
         rel_path = os.path.join(settings.IMAGES_PATH, str(self))
         return os.path.abspath(rel_path)
@@ -210,13 +219,13 @@ class Widget(RegionGroup):
     # TODO: make drag_to accept offset as named parameter and act much like 
     #       the above methods. Also, for drag_onto, use the target_offset of
     #       each widget implicitly.
-    def drag_to(self, x, y, force_check=True):
+    def drag_to(self, x, y, force_check=False):
         if self.exists(force_check):
             self.region.dragDrop(self.region, Location(x, y))
         else:
             raise WidgetError("Unable to find widget to drag: %s" % self.name)
 
-    def drag_onto(self, widget, force_check=True):
+    def drag_onto(self, widget, force_check=False):
         if not self.exists(force_check):
             raise WidgetError("Unable to find widget to drag: %s" % self.name)
         
@@ -225,6 +234,9 @@ class Widget(RegionGroup):
         
         self.region.dragDrop(self.region, widget.region)
 
+    def exists_in(self, region, force_check=False):
+        pass
+        
     # FIXME: The methods below are generic enough so as not to apply
     #        specifically to the instance or the instance's region.
     #        However, they usually do. Should they still be instance

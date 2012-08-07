@@ -7,7 +7,7 @@ def main():
     # This is useful if the same application has
     # different looks across OSs.
     #
-    settings.IMAGES_PATH = "images-win7-classic"
+    settings.IMAGES_PATH = "images-winxp-default"
 
     # More status messages 
     # will be printed to the screen and windows, widgets,

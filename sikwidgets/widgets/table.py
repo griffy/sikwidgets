@@ -1,3 +1,5 @@
+import os
+
 from sikuli.Sikuli import Location
 
 from sikwidgets.widgets.widget import Widget
@@ -128,11 +130,19 @@ class TableColumn(Widget):
     def __init__(self, table, name):
         Widget.__init__(self, table, name)
         self.table = table
-        # create a button with the column name as its name
-        # so that each column has its own subfolder within
-        # the table's folder for state images
-        self.header = Button(table, name)
+        # create a button for the column header
+        # FIXME: It is assumed that all tables have headers in
+        #        order to function correctly.
+        self.header = Button(self, "__header__")
         self.header_region = None
+        self.load_expected_cells()
+
+    def load_expected_cells(self):
+        self.expected_cell = {}
+        path = self.image_folder()
+        expected_cells = [cell for cell in os.listdir(path) if os.path.isdir(os.path.join(path, cell))]
+        for cell_name in expected_cells:
+            self.expected_cell[cell_name] = Button(self, cell_name)
 
     def exists(self, force_check=False):
         if self.locate_header(force_check):
@@ -190,6 +200,10 @@ class TableColumn(Widget):
     # TODO: a cell value should be a folder of states/images rather
     #       than one image. FIX THIS!
     def next_cell_with(self, cell_value):
+        use_text = False
+        if cell_value not in self.expected_cell:
+            use_text = True
+
         self.table.scroll_to_top()
         self.locate_header()
 
@@ -207,6 +221,14 @@ class TableColumn(Widget):
                 # look within region for cell value, performing
                 # the search from the table so that cell value
                 # is looked up within the table's image folder
+
+                if not use_text:
+                    # FIXME: NOT FINISHED
+                    # TODO: call the fancy exists_in method on the expected_cell
+                    #       button when it's ready.
+                    self.expected_cell[cell_value].do(cell_region, 'exists', )
+
+                # OLD BELOW
                 if self.table.do(cell_region, 'exists', cell_value):
                     if settings.DEBUG:
                         print "Found a cell matching '%s'" % cell_value
