@@ -71,33 +71,6 @@ class Widget(RegionGroup):
             return ""
         return os.path.join(str(self.parent), self.name.lower())
 
-    def __eq__(self, state):
-        """ Checks for a given state, either looking it
-            up by a key or passing it directly.
-
-            Note: This method is not cached (ie, force_check always True), 
-                  but it will cache its result for other methods to use.
-        """
-        match = self.do_find(state)
-        if match:
-            # FIXME: should match be converted directly to a Region so we lose all
-            # image info?
-            self.region = match # Region(match)
-            # save a slightly larger region for finding other state images as well
-            self.search_region = self.region.nearby(REGION_FUZZY_FACTOR)
-            self.last_state = state
-            return True
-        return False
-
-    # TODO: Add new <>_in methods that accept a region as their first parameter
-    #       and do their searching within it. exists_in, find_in, etc.
-    #       Those should use the pre-existing code for their corresponding
-    #       methods. Once that is done, change the old methods to just
-    #       call their corresponding <>_in methods, passing search_region
-    #       (or region?) by default
-    def equals_in(self, region, state):
-        pass
-
     def image_folder(self):
         rel_path = os.path.join(settings.IMAGES_PATH, str(self))
         return os.path.abspath(rel_path)
@@ -175,19 +148,6 @@ class Widget(RegionGroup):
             print "Loading state images for '%s' (%s)" % (self.name, path)
         self.states = self.find_states(path)
 
-    def exists(self, force_check=False):
-        if not force_check and self.region:
-            return True
-        for state in self.states:
-            if self == state:
-                return True
-        return False
-
-    def find(self, force_check=False):
-        if not self.exists(force_check):
-            return None
-        return self.region # FIXME: should this be a Match, or is Region enough?
-
     def hover(self, offset=None, force_check=False):
         if self.exists(force_check):
             offset = offset if offset is not None else self.target_offset
@@ -234,14 +194,70 @@ class Widget(RegionGroup):
         
         self.region.dragDrop(self.region, widget.region)
 
-    def exists_in(self, region, force_check=False):
-        pass
+    def exists(self, force_check=False):
+        if not force_check and self.region:
+            return True
+        return self.exists_in(self.search_region)
+
+    def find(self, force_check=False):
+        if not self.exists(force_check):
+            return None
+        return self.region # FIXME: should this be a Match, or is Region enough?
+
+    def __eq__(self, state):
+        return self.equals_in(self.search_region, state)
+
+    def exists_in(self, region):
+        for state in self.states:
+            if self.equals_in(region, state):
+                return True
+        return False
         
-    # FIXME: The methods below are generic enough so as not to apply
-    #        specifically to the instance or the instance's region.
-    #        However, they usually do. Should they still be instance
-    #        methods?
-    def do(self, region, func_name, state, *args, **kwargs):
+    def find_in(self, region):
+        if not self.exists_in(region):
+            return None
+        return self.region # FIXME: should this be a Match, or is Region enough?
+
+    def equals_in(self, region, state):
+        match = self.do_find_in(region, state)
+        if match:
+            # FIXME: should match be converted directly to a Region so we lose all
+            # image info?
+            self.region = match # Region(match)
+            # save a slightly larger region for finding other state images as well
+            self.search_region = self.region.nearby(REGION_FUZZY_FACTOR)
+            self.last_state = state
+            return True
+        return False
+
+    # TODO: for the methods below, should parent.region be used as a secondary
+    #       region to search if the first fails? It's possible that search_region
+    #       could have become smaller due to finding a previous match, but now
+    #       the new state image searched for is much larger and outside the
+    #       fuzzy region, giving us a false negative.
+    def do_exists(self, state, *args, **kwargs):
+        return self.do_exists_in(self.search_region, state, *args, **kwargs)
+
+    def do_find(self, state, *args, **kwargs):
+        return self.do_find_in(self.search_region, state, *args, **kwargs)
+
+    def do(self, func_name, state, *args, **kwargs):
+        return self.do_in(self.search_region, func_name, state, *args, **kwargs)
+
+    def do_exists_in(self, region, state, *args, **kwargs):
+        return self.do_in(region, 'exists', state, *args, **kwargs)
+
+    def do_find_in(self, region, state, *args, **kwargs):
+        # since Find throws an exception if it fails, let's catch it and just
+        # return None
+        match = None
+        try:
+            match = self.do_in(region, 'find', state, *args, **kwargs)
+        except FindFailed:
+            pass
+        return match
+
+    def do_in(self, region, func_name, state, *args, **kwargs):
         """ Checks for the existence of the given state,
             and if it exists calls the given function with
             it as a parameter. Otherwise, it returns False
@@ -278,33 +294,3 @@ class Widget(RegionGroup):
                 if func_name == 'exists':
                     return False
         return None
-
-    # TODO: for the methods below, should parent.region be used as a secondary
-    #       region to search if the first fails? It's possible that search_region
-    #       could have become smaller due to finding a previous match, but now
-    #       the new state image searched for is much larger and outside the
-    #       fuzzy region, giving us a false negative.
-    def do_find(self, state, *args, **kwargs):
-        # since Find throws an exception if it fails, let's catch it and just
-        # return None
-        match = None
-        try:
-            match = self.do(self.search_region, 'find', state, *args, **kwargs)
-        except FindFailed:
-            pass
-        return match
-
-    def do_exists(self, state, *args, **kwargs):
-        return self.do(self.search_region, 'exists', state, *args, **kwargs)
-
-    def do_hover(self, state, *args, **kwargs):
-        return self.do(self.search_region, 'hover', state, *args, **kwargs)
-
-    def do_click(self, state, *args, **kwargs):
-        return self.do(self.search_region, 'click', state, *args, **kwargs)
-
-    def do_dragdrop(self, state, dest_region, *args, **kwargs):
-        return self.do(self.search_region, 'dragDrop', state, dest_region, *args, **kwargs)
-
-    def do_type(self, state, text, *args, **kwargs):
-        return self.do(self.search_region, 'type', state, text, *args, **kwargs)

@@ -197,9 +197,9 @@ class TableColumn(Widget):
     # TODO: scrolling left or right to show columns :|
     #       It should be done like this:
     #           scroll_left until desired_column.exists()
-    # TODO: a cell value should be a folder of states/images rather
-    #       than one image. FIX THIS!
+    # FIXME: this needs rewritten / broken up into separate functions
     def next_cell_with(self, cell_value):
+        # TODO: should use_text be a named parameter the user passes?
         use_text = False
         if cell_value not in self.expected_cell:
             use_text = True
@@ -218,24 +218,21 @@ class TableColumn(Widget):
                 cell_region = cell_region.nearby(self.table.row_height / 2)
                 # hover over it as visual feedback
                 cell_region.hover(cell_region)
-                # look within region for cell value, performing
-                # the search from the table so that cell value
-                # is looked up within the table's image folder
+                # look within the cell region for cell value
+                match = None
+                if use_text:
+                    # search for the text in the cell region
+                    match = self.do_find_in(cell_region, cell_value)
+                else:
+                    # search within the cell region to find the expected cell
+                    # (checking all its states)
+                    match = self.expected_cell[cell_value].find_in(cell_region)
 
-                if not use_text:
-                    # FIXME: NOT FINISHED
-                    # TODO: call the fancy exists_in method on the expected_cell
-                    #       button when it's ready.
-                    self.expected_cell[cell_value].do(cell_region, 'exists', )
-
-                # OLD BELOW
-                if self.table.do(cell_region, 'exists', cell_value):
+                if match:
                     if settings.DEBUG:
                         print "Found a cell matching '%s'" % cell_value
                     row_index = cur_cell + total_rows_scrolled
-                    yield TableCell(self, 
-                                    self.table.do(cell_region, 'find', cell_value), 
-                                    row_index)
+                    yield TableCell(self, match, row_index)
             scanned_page = True
             if not self.table.scrollbar_at_bottom():
                 if settings.DEBUG:
