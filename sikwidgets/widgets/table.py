@@ -16,6 +16,14 @@ from sikwidgets import settings
 #
 #       know how far left/down to click
 
+# TableRow and TableCell instances should be created on-demand,
+# and each should be able to find itself and do all the functions
+# of a regular widget. So, they need regions (a row is the sum of its
+# child cell regions).
+# When they are created, they should be accessible to the Table
+# and the appropriate TableColumns so that they are not lost
+# between operations.
+
 # TODO:
 # TableColumn should probably cache rows and cells that it
 # finds.
@@ -75,17 +83,27 @@ class Table(ScrollableWidget):
         return False
 
     # FIXME: make more efficient (short-circuit)
+    #        Use a generator like in TableColumn
     def first_row_where(self, **kwargs):
         rows = self.rows_where(**kwargs)[0]
         if rows:
             return rows[0]
         return None
 
+    # TODO: in the process of converting this to a generator
+    #       method first_row_where and rows_where will call
+    def next_row_where(self, **kwargs):
+        row_cells = {}
+        for column_name, cell_value in kwargs.iteritems():
+            # search by column for all cells that match
+            matching_cells = self.
+
     def rows_where(self, **kwargs):
         # TODO: improve search algorithm so that only the rows
         #       that match so far are searched within for the
         #       desired column value instead of the entire table
         #       per column
+
         row_cells = None
         for column_name, cell_value in kwargs.iteritems():
             if row_cells and len(row_cells) <= 0:
@@ -107,7 +125,7 @@ class Table(ScrollableWidget):
                         row_cells[row_index].append(cell[0])
         rows = []
         for row_index, cells in row_cells.iteritems():
-            rows.append(TableRow(self, cells, row_index))
+            rows.append(TableRow(self, row_index, cells))
         return rows
 
     def first_cell_where(self, column_name, cell_value):
@@ -194,6 +212,19 @@ class TableColumn(Widget):
         # TODO: store cells in cache
         return cells
 
+    def cell_region_at(row_index):
+        """ Returns the region which will be searched in
+            for the cell at the given row index in the table
+        """
+        self.locate_header()
+        # find the cell's index on the current page of the table
+        page_cell_index = row_index % self.table.rows_per_page
+        y_offset = self.table.row_height + (page_cell_index * self.table.row_height)
+        cell_region = self.header_region.offset(Location(0, y_offset))
+        cell_region.setH(self.table.row_height)
+        cell_region = cell_region.nearby(self.table.row_height / 2)
+        return cell_region
+
     # TODO: scrolling left or right to show columns :|
     #       It should be done like this:
     #           scroll_left until desired_column.exists()
@@ -212,10 +243,7 @@ class TableColumn(Widget):
         scanned_page = False
         while not self.table.scrollbar_at_bottom() or not scanned_page:
             for cur_cell in range(starting_cell, self.table.rows_per_page):
-                y_offset = self.table.row_height + (cur_cell * self.table.row_height)
-                cell_region = self.header_region.offset(Location(0, y_offset))
-                cell_region.setH(self.table.row_height)
-                cell_region = cell_region.nearby(self.table.row_height / 2)
+                cell_region = self.cell_region_at(cur_cell)
                 # hover over it as visual feedback
                 cell_region.hover(cell_region)
                 # look within the cell region for cell value
@@ -243,14 +271,20 @@ class TableColumn(Widget):
                 scanned_page = False
         yield None
 
-# FIXME: should cells be constructed, and THEN searched for?
+# As we search in TableColumn or TableRow and a cell doesn't already exist,
+# *create* one with the column and row_index. THEN use its methods to find
+# itself.
+
 class TableCell(Widget):
     """ A generated, "virtual" widget. Its region is actually a Match from
         a search performed in TableColumn.
     """
-    def __init__(self, column, cell_match, row_index):
+    def __init__(self, column, row_index, cell_match=None):
         Widget.__init__(self, column)
-        self.region = cell_match
+        if cell_match:
+            self.region = cell_match # FIXME: convert to Region?
+            self.found = True
+        else:
         self.column = column
         self.table = column.table
         self.row_index = row_index
@@ -271,17 +305,27 @@ class TableCell(Widget):
 class TableRow(Widget):
     """ A generated, "virtual" widget """
 
-    def __init__(self, table, cells, index):
+    # TODO: should TableColumn 
+    def __init__(self, table, index, cells=[]):
         Widget.__init__(self, table)
         self.table = table
-        self.cells = cells
         self.index = index
+        self.cells = cells
 
     def cell_under(self, column_name):
+        # if we already had the cell stored, return it
         cell = filter(lambda c: c.column.name == column_name, self.cells)
         if cell:
             return cell[0]
-        return None
+        # otherwise, search for it
+        self.scroll_to()
+        column = self.table.column[column_name]
+        return column.cell_region_at()
+
+    def scroll_to(self):
+        self.table.scroll_to_top()
+        num_scrolls = max(self.index+1 - self.table.rows_per_page, 0)
+        self.table.scroll_down(num_scrolls)
 
     def hover(self, offset=None, force_check=False):
         self.cells[0].hover(offset, force_check)
