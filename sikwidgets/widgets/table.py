@@ -355,6 +355,11 @@ class TableRow(Widget):
 
 # TODO: add search methods and region generation
 #       should be able to scroll to and find itself
+
+# if index < self.table.rows_per_page:
+#    page_row_index = index
+# else:
+#    page_row_index = self.table.rows_per_page - 1
 class TableCell(Widget):
     """ A generated, "virtual" widget. Its region is actually a Match from
         a search performed in TableColumn.
