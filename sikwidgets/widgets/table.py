@@ -93,8 +93,7 @@ class Table(ScrollableWidget):
                     # as well as the amount of scrolls necessary to reach it
                     # from the top
                     self.rows.append(TableRow(self, current_row_index, total_rows_scrolled))
-                # return the row's index in the current page and the row itself
-                yield (page_row_index, self.rows[current_row_index])
+                yield self.rows[current_row_index]
                 current_row_index += 1
             # we scanned the full page of visible rows
             scanned_page = True
@@ -122,106 +121,25 @@ class Table(ScrollableWidget):
             row = row_gen.next()
         return rows
 
-    # TODO: in the process of converting this to a generator
-    #       method first_row_where and rows_where will call
     def next_row_where(self, **kwargs):
         row_scanner = self.row_scanner()
         page_row_index, row = row_scanner.next()
         while row:
+            match = True
             for column_name, cell_value in kwargs.iteritems():
-                if not row.column_has(column_name, cell_value):
+                if not row.column_has(column_name, cell_value, force_scroll=False):
                     # one of the column values didn't match,
                     # so this row isn't a match
+                    match = False
                     break
-
+            if match:
+                yield row
             row = row_scanner.next()
-
-                    cell_region = self.cell_region_at(cur_cell)
-                    # hover over it as visual feedback
-                    cell_region.hover(cell_region)
-                    # look within the cell region for cell value
-                    match = None
-                    if use_text:
-                        # search for the text in the cell region
-                        match = self.do_find_in(cell_region, cell_value)
-                    else:
-                        # search within the cell region to find the expected cell
-                        # (checking all its states)
-                        match = self.expected_cell[cell_value].find_in(cell_region)
-
-                    if match:
-                        if settings.DEBUG:
-                            print "Found a cell matching '%s'" % cell_value
-                        row_index = cur_cell + total_rows_scrolled
-                        yield TableCell(self, match, row_index)
-
-
-
-
-        row_cells = {}
-        for column_name, cell_value in kwargs.iteritems():
-            matching_cells = self.column[column_name].cells_with(cell_value)
-            if not matching_cells:
-                yield None
-            elif row_cells is None:
-                row_cells = {}
-                for cell in matching_cells:
-                    row_cells[cell.row_index] = [cell]
-            else:
-                for row_index, cells in row_cells.iteritems():
-                    cell = filter(lambda c: c.row_index == row_index, matching_cells)
-                    if not cell:
-                        del row_cells[row_index]
-                    else:
-                        row_cells[row_index].append(cell[0])
-        rows = []
-        for row_index, cells in row_cells.iteritems():
-            rows.append(TableRow(self, row_index, cells))
-        return rows
 
     def cell_exists(self, column_name, cell_value):
         if self.first_cell_where(**{column_name: cell_value}):
             return True
         return False
-
-    # FIXME: make more efficient (short-circuit)
-    #        Use a generator like in TableColumn
-    def first_row_where(self, **kwargs):
-        rows = self.rows_where(**kwargs)[0]
-        if rows:
-            return rows[0]
-        return None
-
-
-    def rows_where(self, **kwargs):
-        # TODO: improve search algorithm so that only the rows
-        #       that match so far are searched within for the
-        #       desired column value instead of the entire table
-        #       per column
-
-        row_cells = None
-        for column_name, cell_value in kwargs.iteritems():
-            if row_cells and len(row_cells) <= 0:
-                break
-
-            matching_cells = self.column[column_name].cells_with(cell_value)
-            if not matching_cells:
-                return []
-            elif row_cells is None:
-                row_cells = {}
-                for cell in matching_cells:
-                    row_cells[cell.row_index] = [cell]
-            else:
-                for row_index, cells in row_cells.iteritems():
-                    cell = filter(lambda c: c.row_index == row_index, matching_cells)
-                    if not cell:
-                        del row_cells[row_index]
-                    else:
-                        row_cells[row_index].append(cell[0])
-        rows = []
-        for row_index, cells in row_cells.iteritems():
-            rows.append(TableRow(self, row_index, cells))
-        return rows
 
     def first_cell_where(self, column_name, cell_value):
         return self.column[column_name].first_cell_with(cell_value)
@@ -245,6 +163,7 @@ class TableColumn(Widget):
         #        order to function correctly.
         self.header = Button(self, "__header__")
         self.header_region = None
+        self.scrolls_from_left = None
         self.load_expected_cells()
 
     def load_expected_cells(self):
@@ -287,6 +206,37 @@ class TableColumn(Widget):
         else:
             self.header_region = None
         return header
+
+    def scroll_to(self):
+        self.table.scroll_to_left()
+        if self.scrolls_from_left is None:
+            self.scrolls_from_left = 0
+            while not self.exists(force_check=True):
+                self.table.scroll_right()
+                self.scrolls_from_left += 1
+        else:
+            self.table.scroll_right(self.scrolls_from_left)
+
+    def has_cell_matching_at(self, row, cell_value, force_scroll=True):
+        if cell_matching_at(row, cell_value, force_scroll):
+            return True
+        return False
+
+    # FIXME: rewrite this method so that it lets the TableCell check
+    #        itself
+    def cell_matching_at(self, row, cell_value, force_scroll=True):
+        cell = self.cell_at(row, force_scroll)
+        if cell_value in self.expected_cell:
+            if self.expected_cell[cell_value].exists_in(cell.search_region):
+                return cell
+        elif cell == cell_value:
+            return cell
+        return None
+
+    def cell_at(self, row, force_scroll=True):
+        if force_scroll:
+            self.scroll_to()
+        return TableCell(self.table, self, row)
 
     def first_cell_with(self, cell_value):
         # TODO: check cache
@@ -352,10 +302,59 @@ class TableColumn(Widget):
                 scanned_page = False
         yield None
 
-# As we search in TableColumn or TableRow and a cell doesn't already exist,
-# *create* one with the column and row_index. THEN use its methods to find
-# itself.
+class TableRow(Widget):
+    """ A generated, "virtual" widget """
 
+    def __init__(self, table, index, scrolls_from_top):
+        Widget.__init__(self, table)
+        self.table = table
+        self.index = index
+        self.scrolls_from_top = scrolls_from_top
+        self.cell = {}
+
+    def has_cell(column_name, cell_value, force_scroll=True):
+        if force_scroll:
+            self.scroll_to()
+        if self.table.column[column_name].has_cell_at(self.index, cell_value):
+            return True
+        return False
+
+    def cell_under(self, column_name):
+        # if we already had the cell stored, return it
+        cell = filter(lambda c: c.column.name == column_name, self.cells)
+        if cell:
+            return cell[0]
+        # otherwise, search for it
+        self.scroll_to()
+        column = self.table.column[column_name]
+        return column.cell_region_at()
+
+    def scroll_to(self):
+        self.table.scroll_to_top()
+        self.table.scroll_down(self.scrolls_from_top)
+
+    def hover(self, offset=None, force_check=False):
+        self.cells[0].hover(offset, force_check)
+
+    def click(self, offset=None, force_check=False):
+        """ Alias so user doesn't have to say .cells[0].click each time """
+        self.cells[0].click(offset, force_check)
+
+    def double_click(self, offset=None, force_check=False):
+        self.cells[0].double_click(offset, force_check)
+
+    def right_click(self, offset=None, force_check=False):
+        self.cells[0].right_click(offset, force_check)
+
+    def drag_to(self, x, y, force_check=False):
+        self.cells[0].drag_to(x, y, force_check)
+
+    def drag_onto(self, widget, force_check=False):
+        self.cells[0].drag_onto(widget, force_check)
+
+
+# TODO: add search methods and region generation
+#       should be able to scroll to and find itself
 class TableCell(Widget):
     """ A generated, "virtual" widget. Its region is actually a Match from
         a search performed in TableColumn.
@@ -406,49 +405,4 @@ class TableCell(Widget):
     # def right_click(self, offset=None, force_check=False): pass
 
 
-class TableRow(Widget):
-    """ A generated, "virtual" widget """
 
-    def __init__(self, table, index, scrolls_from_top):
-        Widget.__init__(self, table)
-        self.table = table
-        self.index = index
-        self.scrolls_from_top = scrolls_from_top
-        self.cell = {}
-
-    def contains(column_name, cell_value):
-        region_contains
-
-    def cell_under(self, column_name):
-        # if we already had the cell stored, return it
-        cell = filter(lambda c: c.column.name == column_name, self.cells)
-        if cell:
-            return cell[0]
-        # otherwise, search for it
-        self.scroll_to()
-        column = self.table.column[column_name]
-        return column.cell_region_at()
-
-    def scroll_to(self):
-        self.table.scroll_to_top()
-        num_scrolls = max(self.index+1 - self.table.rows_per_page, 0)
-        self.table.scroll_down(num_scrolls)
-
-    def hover(self, offset=None, force_check=False):
-        self.cells[0].hover(offset, force_check)
-
-    def click(self, offset=None, force_check=False):
-        """ Alias so user doesn't have to say .cells[0].click each time """
-        self.cells[0].click(offset, force_check)
-
-    def double_click(self, offset=None, force_check=False):
-        self.cells[0].double_click(offset, force_check)
-
-    def right_click(self, offset=None, force_check=False):
-        self.cells[0].right_click(offset, force_check)
-
-    def drag_to(self, x, y, force_check=False):
-        self.cells[0].drag_to(x, y, force_check)
-
-    def drag_onto(self, widget, force_check=False):
-        self.cells[0].drag_onto(widget, force_check)
