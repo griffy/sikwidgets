@@ -9,4 +9,4 @@ if [ -z $SIKULI_HOME ]; then
 fi
 
 SCRIPT_PATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-java -cp "$SIKULI_HOME/sikuli-script.jar" org.python.util.jython "$SCRIPT_PATH/sw.py" $@
+java -cp "$SIKULI_HOME/sikuli-script.jar" org.python.util.jython "$SCRIPT_PATH/sikwidgets_script.py" $@

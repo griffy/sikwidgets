@@ -76,3 +76,15 @@ def hide_mouse(func):
         Settings.MoveMouseDelay = original_move_delay
         return result
     return wrapped
+
+def clicks_per_widget(widget_size, pixels_per_scroll):
+    num_clicks = 1
+    if pixels_per_scroll != widget_size:
+        # FIXME
+        # very naively calculate how many clicks we need to
+        # do to scroll a widget at a time
+        if pixels_per_scroll < widget_size:
+            num_clicks *= widget_size / pixels_per_scroll
+        else:
+            num_clicks /= pixels_per_scroll / widget_size
+    return num_clicks

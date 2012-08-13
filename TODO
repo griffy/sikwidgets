@@ -17,5 +17,8 @@ In the case of wanting to find only the first matching cell, the current algorit
 Migrate away from using the terminal for input (especially for the 
 capture screenshot section).. Use popups and inputs
 
+Can ScrollableWidget be abstracted enough so that child widgets don't have to worry about handling specific scrolling
+situations, such as with a Table? Probably not.
+
 ## Future Work
 Don't require an application. Allow certain widgets to be used within scripts to automate certain tasks that may require using multiple apps?
