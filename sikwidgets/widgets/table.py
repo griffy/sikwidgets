@@ -123,7 +123,7 @@ class Table(ScrollableWidget):
 
     def next_row_where(self, **kwargs):
         row_scanner = self.row_scanner()
-        page_row_index, row = row_scanner.next()
+        row = row_scanner.next()
         while row:
             match = True
             for column_name, cell_value in kwargs.iteritems():
@@ -135,6 +135,7 @@ class Table(ScrollableWidget):
             if match:
                 yield row
             row = row_scanner.next()
+        yield None
 
     def cell_exists(self, column_name, cell_value):
         if self.first_cell_where(**{column_name: cell_value}):
@@ -238,69 +239,31 @@ class TableColumn(Widget):
             self.scroll_to()
         return TableCell(self.table, self, row)
 
-    def first_cell_with(self, cell_value):
-        # TODO: check cache
-        return self.next_cell_with(cell_value).next()
-        # TODO: store cell in cache
+    def first_cell_with(self, cell_value, force_scroll=True):
+        return self.next_cell_with(cell_value, force_scroll).next()
  
-    def cells_with(self, cell_value):
-        # TODO: check cache
+    def cells_with(self, cell_value, force_scroll=True):
         cells = []
-        cell_gen = self.next_cell_with(cell_value)
+        cell_gen = self.next_cell_with(cell_value, force_scroll)
         cell = cell_gen.next()
         while cell:
             cells.append(cell)
             cell = cell_gen.next()
-        # TODO: store cells in cache
         return cells
 
+    def next_cell_with(self, cell_value, force_scroll=True):
+        if force_scroll:
+            self.scroll_to()
 
-
-    # TODO: scrolling left or right to show columns :|
-    #       It should be done like this:
-    #           scroll_left until desired_column.exists()
-    # FIXME: this needs rewritten / broken up into separate functions
-    def next_cell_with(self, cell_value):
-        # TODO: should use_text be a named parameter the user passes?
-        use_text = False
-        if cell_value not in self.expected_cell:
-            use_text = True
-
-        self.table.scroll_to_top()
-        self.locate_header()
-
-        total_rows_scrolled = 0
-        starting_cell = 0
-        scanned_page = False
-        while not self.table.scrollbar_at_bottom() or not scanned_page:
-            for cur_cell in range(starting_cell, self.table.rows_per_page):
-                cell_region = self.cell_region_at(cur_cell)
-                # hover over it as visual feedback
-                cell_region.hover(cell_region)
-                # look within the cell region for cell value
-                match = None
-                if use_text:
-                    # search for the text in the cell region
-                    match = self.do_find_in(cell_region, cell_value)
-                else:
-                    # search within the cell region to find the expected cell
-                    # (checking all its states)
-                    match = self.expected_cell[cell_value].find_in(cell_region)
-
-                if match:
-                    if settings.DEBUG:
-                        print "Found a cell matching '%s'" % cell_value
-                    row_index = cur_cell + total_rows_scrolled
-                    yield TableCell(self, match, row_index)
-            scanned_page = True
-            if not self.table.scrollbar_at_bottom():
-                if settings.DEBUG:
-                    print "Reached end of page, scrolling down one"
-                rows_scrolled = self.table.scroll_down(self.table.rows_per_page)
-                total_rows_scrolled += rows_scrolled
-                starting_cell = self.table.rows_per_page - rows_scrolled
-                scanned_page = False
+        row_scanner = self.table.row_scanner()
+        row = row_scanner.next()
+        while row:
+            cell = self.cell_matching_at(row, cell_value, force_scroll=False)
+            if cell:
+                yield cell
+            row = row_scanner.next()
         yield None
+
 
 class TableRow(Widget):
     """ A generated, "virtual" widget """
