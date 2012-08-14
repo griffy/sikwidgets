@@ -100,7 +100,7 @@ class Table(ScrollableWidget):
             if not self.scrollbar_at_bottom():
                 # but there are more pages to scan
                 if settings.DEBUG:
-                    print "Reached end of rows; scrolling down a page"
+                    print "Reached end of row page; scrolling down a page"
                 rows_scrolled = self.scroll_down(self.rows_per_page)
                 if not rows_scrolled:
                     break
@@ -127,7 +127,7 @@ class Table(ScrollableWidget):
         while row:
             match = True
             for column_name, cell_value in kwargs.iteritems():
-                if not row.column_has(column_name, cell_value, force_scroll=False):
+                if not row.cell_exists(column_name, cell_value, force_scroll=False):
                     # one of the column values didn't match,
                     # so this row isn't a match
                     match = False
@@ -138,15 +138,15 @@ class Table(ScrollableWidget):
         yield None
 
     def cell_exists(self, column_name, cell_value):
-        if self.first_cell_where(**{column_name: cell_value}):
+        if self.first_cell_where(column_name, cell_value):
             return True
         return False
 
     def first_cell_where(self, column_name, cell_value):
-        return self.column[column_name].first_cell_with(cell_value)
+        return self.column[column_name].first_cell_matching(cell_value)
 
     def cells_where(self, column_name, cell_value):
-        return self.column[column_name].cells_with(cell_value)
+        return self.column[column_name].cells_matching(cell_value)
             
     def exists(self, force_check=False):
         for column in self.columns:
@@ -218,47 +218,41 @@ class TableColumn(Widget):
         else:
             self.table.scroll_right(self.scrolls_from_left)
 
-    def has_cell_matching_at(self, row, cell_value, force_scroll=True):
-        if cell_matching_at(row, cell_value, force_scroll):
+    def cell_in(self, row):
+        return TableCell(self.table, self, row, self.expected_cell)
+
+    def has_cell_matching_in(self, row, cell_value, force_scroll=True):
+        if self.cell_matching_in(row, cell_value, force_scroll):
             return True
         return False
 
     # FIXME: rewrite this method so that it lets the TableCell check
     #        itself
-    def cell_matching_at(self, row, cell_value, force_scroll=True):
-        cell = self.cell_at(row, force_scroll)
-        if cell_value in self.expected_cell:
-            if self.expected_cell[cell_value].exists_in(cell.search_region):
-                return cell
-        elif cell == cell_value:
+    def cell_matching_in(self, row, cell_value, force_scroll=True):
+        if self.cell_in(row).matches(cell_value, force_column_scroll=force_scroll):
             return cell
         return None
 
-    def cell_at(self, row, force_scroll=True):
-        if force_scroll:
-            self.scroll_to()
-        return TableCell(self.table, self, row)
-
-    def first_cell_with(self, cell_value, force_scroll=True):
-        return self.next_cell_with(cell_value, force_scroll).next()
+    def first_cell_matching(self, cell_value, force_scroll=True):
+        return self.next_cell_matching(cell_value, force_scroll).next()
  
-    def cells_with(self, cell_value, force_scroll=True):
+    def cells_matching(self, cell_value, force_scroll=True):
         cells = []
-        cell_gen = self.next_cell_with(cell_value, force_scroll)
+        cell_gen = self.next_cell_matching(cell_value, force_scroll)
         cell = cell_gen.next()
         while cell:
             cells.append(cell)
             cell = cell_gen.next()
         return cells
 
-    def next_cell_with(self, cell_value, force_scroll=True):
+    def next_cell_matching(self, cell_value, force_scroll=True):
         if force_scroll:
             self.scroll_to()
 
         row_scanner = self.table.row_scanner()
         row = row_scanner.next()
         while row:
-            cell = self.cell_matching_at(row, cell_value, force_scroll=False)
+            cell = self.cell_matching_in(row, cell_value, force_scroll=False)
             if cell:
                 yield cell
             row = row_scanner.next()
@@ -272,25 +266,19 @@ class TableRow(Widget):
         Widget.__init__(self, table)
         self.table = table
         self.index = index
+        if index < self.table.rows_per_page:
+            self.page_index = index
+        else:
+            self.page_index = self.table.rows_per_page - 1
         self.scrolls_from_top = scrolls_from_top
-        self.cell = {}
 
-    def has_cell(column_name, cell_value, force_scroll=True):
+    def cell_exists(column_name, cell_value, force_scroll=True):
         if force_scroll:
             self.scroll_to()
-        if self.table.column[column_name].has_cell_at(self.index, cell_value):
-            return True
-        return False
+        return self.table.column[column_name].has_cell_matching_in(self, cell_value)
 
     def cell_under(self, column_name):
-        # if we already had the cell stored, return it
-        cell = filter(lambda c: c.column.name == column_name, self.cells)
-        if cell:
-            return cell[0]
-        # otherwise, search for it
-        self.scroll_to()
-        column = self.table.column[column_name]
-        return column.cell_region_at()
+        return self.table.column[column_name].cell_in(self)
 
     def scroll_to(self):
         self.table.scroll_to_top()
@@ -319,58 +307,73 @@ class TableRow(Widget):
 # TODO: add search methods and region generation
 #       should be able to scroll to and find itself
 
-# if index < self.table.rows_per_page:
-#    page_row_index = index
-# else:
-#    page_row_index = self.table.rows_per_page - 1
+
 class TableCell(Widget):
     """ A generated, "virtual" widget. Its region is actually a Match from
         a search performed in TableColumn.
     """
-    def __init__(self, table, column, row):
+    def __init__(self, table, column, row, expected_cell_map):
         Widget.__init__(self, table)
         self.table = table
         self.column = column
         self.row = row
-        self.search_region = self.cell
-        self.column = column
-        self.table = column.table
-        self.row = row
+        self.expected_cell = expected_cell_map
+        self.find_search_region()
 
-    def cell_region_at(row_index):
-        """ Returns the region which will be searched in
-            for the cell at the given row index in the table
+    def matches(self, cell_value, force_column_scroll=True, force_row_scroll=True):
+        if force_column_scroll:
+            self.column.scroll_to()
+        if force_row_scroll:
+            self.row.scroll_to()
+
+        if cell_value in self.expected_cell:
+            if self.expected_cell[cell_value].exists_in(self.search_region):
+                return True
+        elif self == cell_value:
+            return True
+        return False
+
+    def find_search_region(self):
+        """ Find the region which will be searched in
+            for the cell in the table
         """
-        self.locate_header()
-        # find the cell's index on the current page of the table
-        page_cell_index = row_index % self.table.rows_per_page
-        y_offset = self.table.row_height + (page_cell_index * self.table.row_height)
-        cell_region = self.header_region.offset(Location(0, y_offset))
+        header = self.column.locate_header()
+        y_offset = self.table.row_height + (self.row.page_index * self.table.row_height)
+        cell_region = header.offset(Location(0, y_offset))
         cell_region.setH(self.table.row_height)
-        cell_region = cell_region.nearby(self.table.row_height / 2)
-        return cell_region
+        self.search_region = cell_region.nearby(self.table.row_height / 2)
 
-    # TODO: need to scroll right (if necessary) as well
     def scroll_to(self):
-        self.table.scroll_to_left()
-        self.table.scroll_to_top()
-        num_scrolls_down = max(self.row_index+1 - self.table.rows_per_page, 0)
-        self.table.scroll_down(num_scrolls_down)
-        if self.num_scrolls_right is None:
-            while self.column.exists(force_check=True)
-        self.table.scroll_right(self.num_scrolls_right)
+        self.column.scroll_to()
+        self.row.scroll_to()
 
-    # FIXME: the methods below are too naive. They will not work
-    #        if the page has been scrolled. A cell needs to know
-    #        how many clicks from the top (or left) it is when
-    #        it is discovered
-    # def hover(self, offset=None, force_check=False): pass
+    def hover(self, offset=None, force_check=False):
+        self.scroll_to()
+        Widget.hover(self, offset, force_check)
 
-    # def click(self, offset=None, force_check=False): pass
+    def click(self, offset=None, force_check=False):
+        self.scroll_to()
+        Widget.click(self, offset, force_check)
 
-    # def double_click(self, offset=None, force_check=False): pass
+    def double_click(self, offset=None, force_check=False):
+        self.scroll_to()
+        Widget.double_click(self, offset, force_check)
 
-    # def right_click(self, offset=None, force_check=False): pass
+    def right_click(self, offset=None, force_check=False):
+        self.scroll_to()
+        Widget.right_click(self, offset, force_check)
 
+    def drag_to(self, x, y, force_check=False):
+        self.scroll_to()
+        Widget.drag_to(x, y, force_check)
 
+    def drag_onto(self, widget, force_check=False):
+        if (isinstance(widget, TableCell) or 
+            isinstance(widget, TableRow) or
+            isinstance(widget, TableColumn):
+            # these widgets must be scrolled to first so they're
+            # visible
+            widget.scroll_to()
+        self.scroll_to()
+        Widget.drag_onto(widget, force_check)
 
