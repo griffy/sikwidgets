@@ -99,7 +99,6 @@ class Widget(RegionGroup):
         for state in states:
             capture_screenshot(state, self.image_folder(), widget=self)
 
-
     def find_states(self, path):
         self.create_image_folder()
         files = filter(lambda f: f.endswith('.png'), os.listdir(path))
@@ -142,6 +141,7 @@ class Widget(RegionGroup):
     def load_states(self):
         if not self.name:
             # a nameless widget doesn't (can't) have states
+            self.states = {}
             return
         path = self.image_folder()
         if settings.DEBUG:

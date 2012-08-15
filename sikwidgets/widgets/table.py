@@ -9,25 +9,11 @@ from sikwidgets.widgets.scrollable_widget import ScrollableWidget
 from sikwidgets import settings
 from sikwidgets.util import clicks_per_widget
 
-# TODO: create subfolders of table columns for each expected cell.
-#       This way, cells can have states just like other widgets.
-#       Also, it keeps things cleaner.
-# 
-#       binary searching
+# TODO: remove the force_scroll options and only scroll when absolutely
+#       necessary. Otherwise, make it implicitly required for using a
+#       certain method directly (eg, checking existence, or finding a cell)
 #
-#       know how far left/down to click
-
-# TableRow and TableCell instances should be created on-demand,
-# and each should be able to find itself and do all the functions
-# of a regular widget. So, they need regions (a row is the sum of its
-# child cell regions).
-# When they are created, they should be accessible to the Table
-# and the appropriate TableColumns so that they are not lost
-# between operations.
-
-# TODO:
-# TableColumn should probably cache rows and cells that it
-# finds.
+#       improve caching
 class Table(ScrollableWidget):
     def __init__(self, parent, name, columns, 
                  row_height, rows_per_page, pixels_per_scroll=None):
@@ -36,7 +22,7 @@ class Table(ScrollableWidget):
         self.rows = []
         self.set_row_attributes(row_height, rows_per_page, pixels_per_scroll)
 
-    def set_row_attributes(row_height, rows_per_page, pixels_per_scroll=None):
+    def set_row_attributes(self, row_height, rows_per_page, pixels_per_scroll=None):
         self.row_height = row_height
         self.rows_per_page = rows_per_page
         if not pixels_per_scroll:
@@ -92,7 +78,7 @@ class Table(ScrollableWidget):
                     # The row needs to know its index in the overall table
                     # as well as the amount of scrolls necessary to reach it
                     # from the top
-                    self.rows.append(TableRow(self, current_row_index, total_rows_scrolled))
+                    self.rows.append(TableRow(self, current_row_index, total_rows_scrolled, page_row_index))
                 yield self.rows[current_row_index]
                 current_row_index += 1
             # we scanned the full page of visible rows
@@ -127,6 +113,8 @@ class Table(ScrollableWidget):
         while row:
             match = True
             for column_name, cell_value in kwargs.iteritems():
+                print "Searching for %s" % column_name
+                self.column[column_name].scroll_to()
                 if not row.cell_exists(column_name, cell_value, force_scroll=False):
                     # one of the column values didn't match,
                     # so this row isn't a match
@@ -166,6 +154,20 @@ class TableColumn(Widget):
         self.header_region = None
         self.scrolls_from_left = None
         self.load_expected_cells()
+
+    def capture_screenshots(self):
+        self.header.capture_screenshots(self)
+        # prompt the user for what cells they expect to see
+        # under this column
+        response = raw_input("Capture screenshot(s) of expected cell(s) under this column? ")
+        if not response.startswith('y'):
+            return
+
+        expected_cells = raw_input("List the cells you expect to see under this column, " +
+                                   "separated by commas:\n").replace(' ', '').split(',')
+        for cell_name in expected_cells:
+            cell = Widget(self, cell_name)
+            cell.capture_screenshots()
 
     def load_expected_cells(self):
         self.expected_cell = {}
@@ -226,10 +228,9 @@ class TableColumn(Widget):
             return True
         return False
 
-    # FIXME: rewrite this method so that it lets the TableCell check
-    #        itself
     def cell_matching_in(self, row, cell_value, force_scroll=True):
-        if self.cell_in(row).matches(cell_value, force_column_scroll=force_scroll):
+        cell = self.cell_in(row)
+        if cell.matches(cell_value, force_scroll):
             return cell
         return None
 
@@ -247,6 +248,7 @@ class TableColumn(Widget):
 
     def next_cell_matching(self, cell_value, force_scroll=True):
         if force_scroll:
+            print "next_cell_matching: scroll_to"
             self.scroll_to()
 
         row_scanner = self.table.row_scanner()
@@ -262,20 +264,23 @@ class TableColumn(Widget):
 class TableRow(Widget):
     """ A generated, "virtual" widget """
 
-    def __init__(self, table, index, scrolls_from_top):
+    def __init__(self, table, index, scrolls_from_top, page_index):
         Widget.__init__(self, table)
         self.table = table
         self.index = index
-        if index < self.table.rows_per_page:
-            self.page_index = index
-        else:
-            self.page_index = self.table.rows_per_page - 1
+        self.page_index = page_index
+        # FIXME: instead of requiring the page_index be passed,
+        #        derive it
+        #if index < self.table.rows_per_page:
+        #    self.page_index = index
+        #else:
+        #    self.page_index = self.table.rows_per_page - 1
         self.scrolls_from_top = scrolls_from_top
 
-    def cell_exists(column_name, cell_value, force_scroll=True):
+    def cell_exists(self, column_name, cell_value, force_scroll=True):
         if force_scroll:
             self.scroll_to()
-        return self.table.column[column_name].has_cell_matching_in(self, cell_value)
+        return self.table.column[column_name].has_cell_matching_in(self, cell_value, force_scroll)
 
     def cell_under(self, column_name):
         return self.table.column[column_name].cell_in(self)
@@ -284,28 +289,47 @@ class TableRow(Widget):
         self.table.scroll_to_top()
         self.table.scroll_down(self.scrolls_from_top)
 
+# FIXME
+"""
+  File "main.py", line 72, in <module>
+    main()
+  File "main.py", line 68, in main
+    row.click()
+  File "C:\Program Files\Sikuli X\Lib\site-packages\sikwidgets-0.1.0-py2.5.egg
+ikwidgets\widgets\table.py", line 299, in click
+    cell.click(offset, force_check)
+  File "C:\Program Files\Sikuli X\Lib\site-packages\sikwidgets-0.1.0-py2.5.egg
+ikwidgets\widgets\table.py", line 361, in click
+    Widget.click(self, offset, force_check)
+  File "C:\Program Files\Sikuli X\Lib\site-packages\sikwidgets-0.1.0-py2.5.egg
+ikwidgets\widgets\widget.py", line 163, in click
+    raise WidgetError("Unable to find widget to click on: %s" % self.name)
+sikwidgets.widgets.widget.WidgetError: Unable to find widget to click on: None
+"""
     def hover(self, offset=None, force_check=False):
-        self.cells[0].hover(offset, force_check)
+        cell = self.cell_under(self.table.columns[0].name)
+        cell.hover(offset, force_check)
 
     def click(self, offset=None, force_check=False):
         """ Alias so user doesn't have to say .cells[0].click each time """
-        self.cells[0].click(offset, force_check)
+        cell = self.cell_under(self.table.columns[0].name)
+        cell.click(offset, force_check)
 
     def double_click(self, offset=None, force_check=False):
-        self.cells[0].double_click(offset, force_check)
+        cell = self.cell_under(self.table.columns[0].name)
+        cell.double_click(offset, force_check)
 
     def right_click(self, offset=None, force_check=False):
-        self.cells[0].right_click(offset, force_check)
+        cell = self.cell_under(self.table.columns[0].name)
+        cell.right_click(offset, force_check)
 
     def drag_to(self, x, y, force_check=False):
-        self.cells[0].drag_to(x, y, force_check)
+        cell = self.cell_under(self.table.columns[0].name)
+        cell.drag_to(x, y, force_check)
 
     def drag_onto(self, widget, force_check=False):
-        self.cells[0].drag_onto(widget, force_check)
-
-
-# TODO: add search methods and region generation
-#       should be able to scroll to and find itself
+        cell = self.cell_under(self.table.columns[0].name)
+        cell.drag_onto(widget, force_check)
 
 
 class TableCell(Widget):
@@ -320,11 +344,9 @@ class TableCell(Widget):
         self.expected_cell = expected_cell_map
         self.find_search_region()
 
-    def matches(self, cell_value, force_column_scroll=True, force_row_scroll=True):
-        if force_column_scroll:
-            self.column.scroll_to()
-        if force_row_scroll:
-            self.row.scroll_to()
+    def matches(self, cell_value, force_scroll=True):
+        if force_scroll:
+            self.scroll_to()
 
         if cell_value in self.expected_cell:
             if self.expected_cell[cell_value].exists_in(self.search_region):
@@ -370,7 +392,7 @@ class TableCell(Widget):
     def drag_onto(self, widget, force_check=False):
         if (isinstance(widget, TableCell) or 
             isinstance(widget, TableRow) or
-            isinstance(widget, TableColumn):
+            isinstance(widget, TableColumn)):
             # these widgets must be scrolled to first so they're
             # visible
             widget.scroll_to()

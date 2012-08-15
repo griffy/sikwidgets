@@ -24,8 +24,6 @@ class ScrollableWidget(Widget):
         self._bottom_button.capture_screenshots()
         self._left_button.capture_screenshots()
         self._right_button.capture_screenshots()
-        # take screenshots of the widget itself last
-        Widget.capture_screenshots(self)
 
     def has_vertical_scrollbar(self):
         return (self._top_button.exists(force_check=True) and 

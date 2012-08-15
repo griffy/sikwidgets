@@ -7,14 +7,14 @@ def main():
     # This is useful if the same application has
     # different looks across OSs.
     #
-    settings.IMAGES_PATH = "images-winxp-default"
+    settings.IMAGES_PATH = "images-win7-classic"
 
     # More status messages 
     # will be printed to the screen and windows, widgets,
     # and mouse actions will be highlighted.
     # Note: The program will run significantly slower.
     #
-    settings.debug()
+    #settings.debug()
 
     # This setting changes how much an image is compacted
     # for processing as well as slightly changing the 
@@ -48,18 +48,24 @@ def main():
     tasks.applications_tab.click()
     tasks.processes_tab.click()
     tasks.processes_table.column['user_name'].click()
-    tasks.processes_table.column['cpu'].click()
-    tasks.processes_table.column['memory'].click()
+    #tasks.processes_table.column['cpu'].click()
+    #tasks.processes_table.column['memory'].click()
     tasks.processes_table.column['image_name'].click()
-    # Since there is no java.exe.png file under the
+
+    # Since there is no java.exe folder under the
     # processes_table folder, looking for 'java.exe'
     # will result in the text of each row being read
     # (using Sikuli's OCR) and compared against what
     # we specified.
-    cell = tasks.processes_table.column['image_name'].first_cell_with('java.exe')
+    #cell = tasks.processes_table.column['image_name'].first_cell_matching('java.exe')
     # If we found a 'java.exe' cell, click it!
-    if cell:
-        cell.click()
+    #if cell:
+    #    cell.click()
+
+    row = tasks.processes_table.first_row_where(image_name='winlogon.exe',
+                                                user_name='system')
+    if row:
+        row.click()
 
 
 if __name__ == "__main__":

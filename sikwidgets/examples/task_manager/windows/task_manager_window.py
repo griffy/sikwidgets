@@ -1,5 +1,8 @@
 from sikwidgets.window import Window
 from sikwidgets.region_group import RegionGroup
+from sikwidgets import settings
+
+settings.IMAGES_PATH = "images-win7-classic"
 
 class TaskManagerWindow(Window):
     def contains(self):
@@ -13,6 +16,6 @@ class TaskManagerWindow(Window):
                     'cpu',
                     'memory',
                     'description'],
-           row_height=14,
-           rows_per_page=19
+           row_height=17,
+           rows_per_page=15
         )

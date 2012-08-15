@@ -16,8 +16,8 @@ del ez_setup.py
 cd ..
 %JAVA_EXE% -cp "%SIKULI_HOME%\sikuli-script.jar" org.python.util.jython -Dpython.executable="setup.py" setup.py install
 
-:: Add our scripts to the path using SetEnv
+:: Add our scripts to the path
 :: http://stackoverflow.com/questions/1156723/permanently-altering-a-users-path-via-batch-or-python
 :: http://www.codeproject.com/Articles/12153/SetEnv
-:: setx PATH "%SIKULI_HOME%\bin;%path%;"
-SetEnv.exe -a PATH %"%SIKULI_HOME%\bin"
+cd install
+SetEnv.exe -ua PATH "%SIKULI_HOME%\bin"
