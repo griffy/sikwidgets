@@ -14,6 +14,11 @@ from sikwidgets.util import clicks_per_widget
 #       certain method directly (eg, checking existence, or finding a cell)
 #
 #       improve caching
+#
+#       rows, columns, and cells should be intelligent enough to know
+#       how much more is required to scroll to them, and not to
+#       do a clean scroll every time. It takes forever on medium-to-large
+#       tables.
 class Table(ScrollableWidget):
     def __init__(self, parent, name, columns, 
                  row_height, rows_per_page, pixels_per_scroll=None):
@@ -113,7 +118,6 @@ class Table(ScrollableWidget):
         while row:
             match = True
             for column_name, cell_value in kwargs.iteritems():
-                print "Searching for %s" % column_name
                 self.column[column_name].scroll_to()
                 if not row.cell_exists(column_name, cell_value, force_scroll=False):
                     # one of the column values didn't match,
@@ -153,10 +157,11 @@ class TableColumn(Widget):
         self.header = Button(self, "__header__")
         self.header_region = None
         self.scrolls_from_left = None
+        self.cell = {}
         self.load_expected_cells()
 
     def capture_screenshots(self):
-        self.header.capture_screenshots(self)
+        self.header.capture_screenshots()
         # prompt the user for what cells they expect to see
         # under this column
         response = raw_input("Capture screenshot(s) of expected cell(s) under this column? ")
@@ -221,7 +226,10 @@ class TableColumn(Widget):
             self.table.scroll_right(self.scrolls_from_left)
 
     def cell_in(self, row):
-        return TableCell(self.table, self, row, self.expected_cell)
+        if row.index not in self.cell:
+            cell = TableCell(self.table, self, row, self.expected_cell)
+            self.cell[row.index] = cell
+        return self.cell[row.index]
 
     def has_cell_matching_in(self, row, cell_value, force_scroll=True):
         if self.cell_matching_in(row, cell_value, force_scroll):
@@ -248,7 +256,6 @@ class TableColumn(Widget):
 
     def next_cell_matching(self, cell_value, force_scroll=True):
         if force_scroll:
-            print "next_cell_matching: scroll_to"
             self.scroll_to()
 
         row_scanner = self.table.row_scanner()
@@ -289,23 +296,6 @@ class TableRow(Widget):
         self.table.scroll_to_top()
         self.table.scroll_down(self.scrolls_from_top)
 
-# FIXME
-"""
-  File "main.py", line 72, in <module>
-    main()
-  File "main.py", line 68, in main
-    row.click()
-  File "C:\Program Files\Sikuli X\Lib\site-packages\sikwidgets-0.1.0-py2.5.egg
-ikwidgets\widgets\table.py", line 299, in click
-    cell.click(offset, force_check)
-  File "C:\Program Files\Sikuli X\Lib\site-packages\sikwidgets-0.1.0-py2.5.egg
-ikwidgets\widgets\table.py", line 361, in click
-    Widget.click(self, offset, force_check)
-  File "C:\Program Files\Sikuli X\Lib\site-packages\sikwidgets-0.1.0-py2.5.egg
-ikwidgets\widgets\widget.py", line 163, in click
-    raise WidgetError("Unable to find widget to click on: %s" % self.name)
-sikwidgets.widgets.widget.WidgetError: Unable to find widget to click on: None
-"""
     def hover(self, offset=None, force_check=False):
         cell = self.cell_under(self.table.columns[0].name)
         cell.hover(offset, force_check)
@@ -332,6 +322,18 @@ sikwidgets.widgets.widget.WidgetError: Unable to find widget to click on: None
         cell.drag_onto(widget, force_check)
 
 
+def default_to_search_region(func):
+    def wrapped(self, *args, **kwargs):
+        had_region = True
+        if not self.region:
+            had_region = False
+            self.region = self.search_region
+        result = func(self, *args, **kwargs)
+        if not had_region:
+            self.region = None
+        return result
+    return wrapped
+
 class TableCell(Widget):
     """ A generated, "virtual" widget. Its region is actually a Match from
         a search performed in TableColumn.
@@ -350,6 +352,9 @@ class TableCell(Widget):
 
         if cell_value in self.expected_cell:
             if self.expected_cell[cell_value].exists_in(self.search_region):
+                # FIXME: probably a better way to have this cell know
+                #        its region
+                self.region = self.expected_cell[cell_value].region
                 return True
         elif self == cell_value:
             return True
@@ -369,33 +374,12 @@ class TableCell(Widget):
         self.column.scroll_to()
         self.row.scroll_to()
 
-    def hover(self, offset=None, force_check=False):
-        self.scroll_to()
-        Widget.hover(self, offset, force_check)
-
-    def click(self, offset=None, force_check=False):
-        self.scroll_to()
-        Widget.click(self, offset, force_check)
-
-    def double_click(self, offset=None, force_check=False):
-        self.scroll_to()
-        Widget.double_click(self, offset, force_check)
-
-    def right_click(self, offset=None, force_check=False):
-        self.scroll_to()
-        Widget.right_click(self, offset, force_check)
-
-    def drag_to(self, x, y, force_check=False):
-        self.scroll_to()
-        Widget.drag_to(x, y, force_check)
-
-    def drag_onto(self, widget, force_check=False):
-        if (isinstance(widget, TableCell) or 
-            isinstance(widget, TableRow) or
-            isinstance(widget, TableColumn)):
-            # these widgets must be scrolled to first so they're
-            # visible
-            widget.scroll_to()
-        self.scroll_to()
-        Widget.drag_onto(widget, force_check)
-
+    # FIXME: hacky way of having a region to perform an
+    #        action on in the case where a row is found
+    #        but not all columns have been searched
+    hover = default_to_search_region(Widget.hover)
+    click = default_to_search_region(Widget.click)
+    double_click = default_to_search_region(Widget.double_click)
+    right_click = default_to_search_region(Widget.right_click)
+    drag_to = default_to_search_region(Widget.drag_to)
+    drag_onto = default_to_search_region(Widget.drag_onto)

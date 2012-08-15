@@ -7,7 +7,7 @@ def main():
     # This is useful if the same application has
     # different looks across OSs.
     #
-    settings.IMAGES_PATH = "images-win7-classic"
+    settings.IMAGES_PATH = "images-winxp-default"
 
     # More status messages 
     # will be printed to the screen and windows, widgets,
@@ -47,10 +47,10 @@ def main():
     # Have some fun with the window :)
     tasks.applications_tab.click()
     tasks.processes_tab.click()
-    tasks.processes_table.column['user_name'].click()
+    #tasks.processes_table.column['user_name'].click()
     #tasks.processes_table.column['cpu'].click()
     #tasks.processes_table.column['memory'].click()
-    tasks.processes_table.column['image_name'].click()
+    #tasks.processes_table.column['image_name'].click()
 
     # Since there is no java.exe folder under the
     # processes_table folder, looking for 'java.exe'
@@ -62,11 +62,16 @@ def main():
     #if cell:
     #    cell.click()
 
+    rows = tasks.processes_table.rows_where(user_name='system')
+    for row in rows:
+        row.scroll_to()
+        row.click()
+
     row = tasks.processes_table.first_row_where(image_name='winlogon.exe',
                                                 user_name='system')
     if row:
+        print "Found the row"
         row.click()
-
 
 if __name__ == "__main__":
     main()

@@ -1,8 +1,5 @@
 from sikwidgets.window import Window
 from sikwidgets.region_group import RegionGroup
-from sikwidgets import settings
-
-settings.IMAGES_PATH = "images-win7-classic"
 
 class TaskManagerWindow(Window):
     def contains(self):

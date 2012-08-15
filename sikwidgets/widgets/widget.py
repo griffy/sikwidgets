@@ -106,7 +106,7 @@ class Widget(RegionGroup):
         for required_state in self.required_states:
             if required_state not in states:
                 if settings.DEBUG:
-                    print "required state '%s' for %s class not found at path: %s" % (required_state, 
+                    print "Required state '%s' for %s class not found at path: %s" % (required_state, 
                                                                                       self.__class__.__name__, 
                                                                                       path)
         state_map = {}

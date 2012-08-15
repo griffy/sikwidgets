@@ -47,14 +47,8 @@ class ScrollableWidget(Widget):
 
     def scrollbar_at_top(self):
         if not self.has_vertical_scrollbar():
-            print "I don't think there's a vertical scrollbar"
             return True
-        touching = self._top_button.is_touching()
-        if touching:
-            print "I think we're at the top"
-        else:
-            print "I don't think we're at the top"
-        return touching
+        return self._top_button.is_touching()
 
     def scrollbar_at_bottom(self):
         if not self.has_vertical_scrollbar():
