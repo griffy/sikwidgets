@@ -102,8 +102,9 @@ class Widget(RegionGroup):
 
     def find_states(self, path):
         self.create_image_folder()
-        files = filter(lambda f: f.endswith('.png'), os.listdir(path))
-        states = map(lambda f: f.split('.png')[0], files)
+        # FIXME: use regex
+        files = filter(lambda f: f.endswith('.png') or f.endswith('.PNG'), os.listdir(path))
+        states = map(lambda f: f.rsplit('.', 1)[0], files)
         for required_state in self.required_states:
             if required_state not in states:
                 if settings.DEBUG:

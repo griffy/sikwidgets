@@ -284,6 +284,10 @@ class TableRow(Widget):
         #    self.page_index = self.table.rows_per_page - 1
         self.scrolls_from_top = scrolls_from_top
 
+    # FIXME: also check what row index is visible
+    def exists(self, force_check=False):
+        return self.table.exists(force_check)
+
     def cell_exists(self, column_name, cell_value, force_scroll=True):
         if force_scroll:
             self.scroll_to()

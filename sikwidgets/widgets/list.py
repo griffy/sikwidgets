@@ -13,13 +13,8 @@ class List(Table):
                  row_height, rows_per_page, pixels_per_scroll=None):
         Table.__init__(self, parent, name, [column], row_height, rows_per_page, pixels_per_scroll)
 
-    # FIXME: find a better way to get the word 'column' available without
-    #        wiping out Table's column hash
-    def column(self):
-        return self.columns[0]
-
     def first_row_matching(self, row_value):
-        return self.first_row_where(**{self.column().name: row_value})
+        return self.first_row_where(**{self.columns[0].name: row_value})
 
     def rows_matching(self, row_value):
-        return self.rows_where(**{self.column().name: row_value})
+        return self.rows_where(**{self.columns[0].name: row_value})

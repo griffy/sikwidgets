@@ -10,7 +10,7 @@ class ComboBox(List):
     				  row_height, rows_per_page, pixels_per_scroll)
 
     def hover(self, offset=None, force_check=False):
-        self.column().hover(offset, force_check)
+        self.columns[0].hover(offset, force_check)
 
     def click(self, offset=None, force_check=False):
-        self.column().click(offset, force_check)
+        self.columns[0].click(offset, force_check)
