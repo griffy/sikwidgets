@@ -53,12 +53,17 @@ class Window(RegionGroup):
         seen_widgets = 0
         unseen_widgets = 0
         for widget in self.widgets:
+            if seen_widgets >= 10:
+                # we're confident enough it exists
+                return True
+
             if widget.exists():
                 seen_widgets += 1
             else:
                 unseen_widgets += 1
             if seen_widgets > 2 * unseen_widgets + 1:
                 return True
+                
         if seen_widgets >= unseen_widgets:
             return True
         return False

@@ -82,6 +82,7 @@ class Widget(RegionGroup):
             return False
         return True
         
+    # FIXME: does not work when widget is inside nested Pages
     def capture_screenshots(self):
         self.create_image_folder()
 
